@@ -562,6 +562,10 @@ def main():
         tesla_api_json['refresh_token'] = SETTINGS['refresh_token']
         _write_tesla_api_json()
 
+    if not tesla_api_json.get('expiration'):
+        tesla_api_json['expiration'] = 0
+        _write_tesla_api_json
+
     # Apply any arguments that the user may have provided.
     kwargs = {}
     if args.arguments:

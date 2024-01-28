@@ -12,12 +12,9 @@ function ping {
     if [[ ( -n "${TESLA_REFRESH_TOKEN:+x}" ) ]]
     # Use Tesla API to keep car awake
     then
-      if /root/bin/tesla_api.py streaming_ping
+      if /root/bin/tesla_api.py wake_up_vehicle
       then
         sleep 90
-      else
-        log "Failed to contact car using Tesla API, retrying in 5s..."
-        sleep 5
       fi
     fi
 
