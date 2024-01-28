@@ -14,7 +14,7 @@ from pprint import pprint
 
 
 # Global vars for use by various functions.
-base_url = 'https://owner-api.teslamotors.com/api/1/vehicles'
+base_url = 'https://fleet-api.prd.na.vn.cloud.tesla.com/api/1/vehicles'
 SETTINGS = {
     'DEBUG': False,
     'REFRESH_TOKEN': False,
@@ -104,6 +104,7 @@ def _rest_request(url, method=None, data=None):
     headers = {
       'Authorization': 'Bearer {}'.format(_get_api_token()),
       'User-Agent': 'github.com/marcone/teslausb',
+      'Content-Type': 'application/json',
     }
 
     _log("Sending {} Request: {}; Data: {}".format(method, url, data))
@@ -126,6 +127,17 @@ def _rest_request(url, method=None, data=None):
 
     return json_response
 
+def get_refreshed_data():
+    refresh_url = 'https://auth.tesla.com/oauth2/v3/token'
+    refresh_data = {
+        'grant_type': 'refresh_token',
+        'client_id': "a14a27773224-4a92-856c-974a89ec91c7",
+        'refresh_token': tesla_api_json['refresh_token']
+    }
+    response = requests.post(refresh_url, data=refresh_data)
+    response_data = response.json()
+    expiration_time = datetime.utcnow() + timedelta(seconds=response_data.get('expires_in'))
+    return response_data
 
 def _get_api_token():
     """
@@ -145,25 +157,20 @@ def _get_api_token():
         if now.year < 2019: # This script was written in 2019.
             return tesla_api_json['access_token']
 
-        tesla = teslapy.Tesla(SETTINGS['tesla_email'], None)
         if SETTINGS['REFRESH_TOKEN'] or 0 < tesla.expires_at < time.time():
             _log('Refreshing api token')
-            tesla.refresh_token()
-            tesla_api_json['access_token'] = tesla.token.get('access_token')
+            refreshed_data = get_refreshed_data()
+            tesla_api_json['access_token'] = refreshed_data.get('access_token')
 
         return tesla_api_json['access_token']
 
     # If the access token is not already stored in tesla_api_json AND
     # the user provided a refresh_token force it into the client to get a proper token
     elif tesla_api_json['refresh_token']:
-        tesla = teslapy.Tesla(SETTINGS['tesla_email'], None)
-        _log('Force setting a refresh token')
-        tesla.access_token = "DUMMY"
-        tesla.token['refresh_token'] = tesla_api_json['refresh_token']
-        tesla.refresh_token()
-        tesla_api_json['access_token'] = tesla.token.get('access_token')
+        refreshed_data = get_refreshed_data()
+        tesla_api_json['access_token'] = refreshed_data.get('access_token')
         # if the refresh token is changed we store the new one, never saw it happen but...
-        tesla_api_json['refresh_token'] = tesla.token['refresh_token']
+        tesla_api_json['refresh_token'] = refreshed_data.get('refresh_token')
         _write_tesla_api_json()
         return tesla_api_json['access_token']
 
