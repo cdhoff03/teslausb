@@ -32,6 +32,7 @@ tesla_api_json = {
     'refresh_token': '',
     'id': 0,
     'vehicle_id': 0,
+    'expiration': 0
 }
 
 mutable_dir = '/mutable'
@@ -103,7 +104,6 @@ def _rest_request(url, method=None, data=None):
         data = {}
     headers = {
       'Authorization': 'Bearer {}'.format(_get_api_token()),
-      'User-Agent': 'github.com/marcone/teslausb',
       'Content-Type': 'application/json',
     }
 
@@ -136,7 +136,8 @@ def get_refreshed_data():
     }
     response = requests.post(refresh_url, data=refresh_data)
     response_data = response.json()
-    expiration_time = datetime.utcnow() + timedelta(seconds=response_data.get('expires_in'))
+    tesla_api_json['expiration']: time.time() + response_data.get("expires_in")
+    _write_tesla_api_json()
     return response_data
 
 def _get_api_token():
@@ -157,7 +158,7 @@ def _get_api_token():
         if now.year < 2019: # This script was written in 2019.
             return tesla_api_json['access_token']
 
-        if SETTINGS['REFRESH_TOKEN'] or 0 < tesla.expires_at < time.time():
+        if SETTINGS['REFRESH_TOKEN'] or 0 < tesla_api_json['expiration'] < time.time():
             _log('Refreshing api token')
             refreshed_data = get_refreshed_data()
             tesla_api_json['access_token'] = refreshed_data.get('access_token')
