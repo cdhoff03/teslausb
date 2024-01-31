@@ -5,7 +5,6 @@ import json
 import os
 import random
 import requests
-import teslapy
 import time
 import sys
 from datetime import datetime, timedelta
@@ -136,7 +135,7 @@ def get_refreshed_data():
     }
     response = requests.post(refresh_url, data=refresh_data)
     response_data = response.json()
-    tesla_api_json['expiration']: time.time() + response_data.get("expires_in")
+    tesla_api_json['expiration'] = round(time.time()) + response_data.get("expires_in")
     _write_tesla_api_json()
     return response_data
 
@@ -158,7 +157,7 @@ def _get_api_token():
         if now.year < 2019: # This script was written in 2019.
             return tesla_api_json['access_token']
 
-        if SETTINGS['REFRESH_TOKEN'] or 0 < tesla_api_json['expiration'] < time.time():
+        if tesla_api_json['expiration'] < time.time():
             _log('Refreshing api token')
             refreshed_data = get_refreshed_data()
             tesla_api_json['access_token'] = refreshed_data.get('access_token')
